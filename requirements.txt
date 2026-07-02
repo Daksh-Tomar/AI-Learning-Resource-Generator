@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+streamlit
+scikit-learn
+sentence-transformers
+vaderSentiment
+youtube-transcript-api
+google-api-python-client
+praw
+openai
+sqlalchemy
+pytest
