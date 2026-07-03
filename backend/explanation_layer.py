@@ -1,5 +1,8 @@
 import os
 import json
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Fallback in case openai is not installed or key is missing
 try:
