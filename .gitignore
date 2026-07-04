@@ -8,3 +8,4 @@ env/
 .env
 resources.db
 .DS_Store
+**/venv/
