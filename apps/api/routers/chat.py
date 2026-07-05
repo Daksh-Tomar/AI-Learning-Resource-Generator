@@ -1,15 +1,17 @@
 import os
-from fastapi import APIRouter, Depends
+import json
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from openai import OpenAI
-from ..database import get_db
-from ..schemas import ChatRequest, ChatResponse, LearnerProfileSchema
-from ..models import Conversation
+from google import genai
+from google.genai import types, errors
+from database import get_db
+from schemas import ChatRequest, ChatResponse, LearnerProfileSchema
+from models import Conversation
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
-# Initialize OpenAI Client (Make sure OPENAI_API_KEY is loaded via dotenv in main or database)
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Initialize Gemini Client
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 SYSTEM_PROMPT = """
 You are LearnLens AI, an intelligent academic counselor and learning path generator.
@@ -28,23 +30,33 @@ If you believe you have enough information, you can mention that you are ready t
 
 @router.post("/message", response_model=ChatResponse)
 def send_message(request: ChatRequest, db: Session = Depends(get_db)):
-    # Reconstruct history for OpenAI
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    # Reconstruct history for Gemini
+    contents = []
     for msg in request.history:
-        messages.append({"role": msg.role, "content": msg.content})
+        role = 'model' if msg.role == 'ai' else 'user'
+        contents.append(types.Content(role=role, parts=[types.Part.from_text(text=msg.content)]))
     
     # Append the latest user message
-    messages.append({"role": "user", "content": request.message})
+    contents.append(types.Content(role="user", parts=[types.Part.from_text(text=request.message)]))
 
-    # Call OpenAI
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=messages,
-        temperature=0.7,
-        max_tokens=300
-    )
-    
-    ai_reply = response.choices[0].message.content
+    try:
+        # Call Gemini
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                temperature=0.7,
+                max_output_tokens=300
+            )
+        )
+        ai_reply = response.text
+    except errors.APIError as e:
+        if e.code == 429:
+            raise HTTPException(status_code=429, detail="Gemini API Quota Exceeded. Please check your billing details.")
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
     # Save to db (optional/simplified for MVP)
     # Ideally, we would fetch or create the Conversation by session_id
@@ -53,18 +65,36 @@ def send_message(request: ChatRequest, db: Session = Depends(get_db)):
 
 @router.post("/profile/extract", response_model=LearnerProfileSchema)
 def extract_profile(request: ChatRequest):
-    # Reconstruct history to extract profile
-    messages = [{"role": "system", "content": "You are a data extraction agent. Extract the user's learning profile from the conversation history."}]
+    # Reconstruct history for Gemini
+    contents = []
     for msg in request.history:
-        messages.append({"role": msg.role, "content": msg.content})
-    messages.append({"role": "user", "content": request.message})
+        role = 'model' if msg.role == 'ai' else 'user'
+        contents.append(types.Content(role=role, parts=[types.Part.from_text(text=msg.content)]))
+    contents.append(types.Content(role="user", parts=[types.Part.from_text(text=request.message)]))
     
-    # Use structured output parsing (new in OpenAI SDK)
-    completion = client.beta.chat.completions.parse(
-        model="gpt-4o-mini",
-        messages=messages,
-        response_format=LearnerProfileSchema
-    )
-    
-    profile = completion.choices[0].message.parsed
-    return profile
+    try:
+        # Use structured output
+        completion = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction="You are a data extraction agent. Extract the user's learning profile from the conversation history.",
+                response_mime_type="application/json",
+                response_schema=LearnerProfileSchema,
+                temperature=0.1
+            )
+        )
+        
+        # In case google-genai sdk supports .parsed
+        if hasattr(completion, 'parsed') and completion.parsed:
+            return completion.parsed
+            
+        profile_data = json.loads(completion.text)
+        profile = LearnerProfileSchema(**profile_data)
+        return profile
+    except errors.APIError as e:
+        if e.code == 429:
+            raise HTTPException(status_code=429, detail="Gemini API Quota Exceeded. Please check your billing details.")
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

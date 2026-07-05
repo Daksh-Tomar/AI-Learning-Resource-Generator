@@ -25,7 +25,7 @@ export default function ChatBox() {
 
     try {
       // Assuming FastAPI runs on 8000 locally
-      const res = await fetch("http://localhost:8000/api/chat/message", {
+      const res = await fetch("http://127.0.0.1:8000/api/chat/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -35,9 +35,16 @@ export default function ChatBox() {
         })
       });
       const data = await res.json();
+      if (!res.ok) {
+        alert(`Error: ${data.detail || "Failed to send message"}`);
+        // Revert the optimistic update since it failed
+        setMessages(messages);
+        return;
+      }
       setMessages([...newMessages, { role: "ai", content: data.message }]);
     } catch (e) {
       console.error(e);
+      alert("Network error. Is the backend running?");
     } finally {
       setLoading(false);
     }
@@ -46,7 +53,7 @@ export default function ChatBox() {
   const generateProfile = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/chat/profile/extract", {
+      const res = await fetch("http://127.0.0.1:8000/api/chat/profile/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -56,9 +63,14 @@ export default function ChatBox() {
         })
       });
       const data = await res.json();
+      if (!res.ok) {
+        alert(`Error: ${data.detail || "Failed to extract profile"}`);
+        return;
+      }
       setProfile(data);
     } catch (e) {
       console.error(e);
+      alert("Network error. Is the backend running?");
     } finally {
       setLoading(false);
     }
