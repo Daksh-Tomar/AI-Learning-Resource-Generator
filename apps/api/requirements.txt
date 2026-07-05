@@ -7,4 +7,7 @@ psycopg[binary]
 pgvector
 alembic
 python-dotenv
-openai
+google-genai
+pytest
+pytest-asyncio
+httpx
