@@ -11,3 +11,5 @@ google-genai
 pytest
 pytest-asyncio
 httpx
+isodate
+youtube-transcript-api

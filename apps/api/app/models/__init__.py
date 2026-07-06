@@ -5,5 +5,11 @@ from app.models.search_session import SearchSession, SearchPlanModel
 from app.models.resource import ResourceModel
 from app.models.resource_metrics import ResourceMetrics
 from app.models.transcript import TranscriptModel, TranscriptChunkModel
-from app.models.comment import CommentModel
+from app.models.comment import CommentModel, CommentCollectionBatchModel
 from app.models.recommendation import RecommendationSession, RecommendationModel
+
+# Phase 1 Models
+from app.models.search_query import SearchQueryModel
+from app.models.discovery_result import DiscoveryResultModel
+from app.models.transcript_segment import TranscriptSegmentModel
+from app.models.ingestion_job import IngestionJobModel
