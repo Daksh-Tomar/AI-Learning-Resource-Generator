@@ -30,7 +30,7 @@ async def main():
         from app.models.conversation import Conversation
         convo = Conversation(id=convo_id)
         db.add(convo)
-        db.flush()
+        db.commit()
         
         profile = LearnerProfileModel(
             id=profile_id,
@@ -43,8 +43,11 @@ async def main():
             daily_hours=2.0
         )
         db.add(profile)
+        db.commit()
+        
         session = SearchSession(id=session_id, learner_profile_id=profile_id, status="PLANNING")
         db.add(session)
+        db.commit()
         
         plan = SearchPlanModel(
             search_session_id=session_id,

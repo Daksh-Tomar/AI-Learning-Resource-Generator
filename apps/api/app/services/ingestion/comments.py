@@ -32,10 +32,16 @@ class CommentIngestionService:
                 comments_dto = await self.provider.fetch_comments(r.external_id, limit=self.max_comments, order_mode="relevance")
                 
                 comments_data = []
+                seen_comment_ids = set()
+                
                 for c in comments_dto:
                     # Basic validation: reject empty
                     if not c.text or not c.text.strip():
                         continue
+                    if c.external_comment_id in seen_comment_ids:
+                        continue
+                        
+                    seen_comment_ids.add(c.external_comment_id)
                     comments_data.append({
                         "resource_id": r.id,
                         "collection_batch_id": batch.id,
