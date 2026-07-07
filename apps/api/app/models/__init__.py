@@ -13,3 +13,9 @@ from app.models.search_query import SearchQueryModel
 from app.models.discovery_result import DiscoveryResultModel
 from app.models.transcript_segment import TranscriptSegmentModel
 from app.models.ingestion_job import IngestionJobModel
+
+# Phase 2 Models
+from app.models.chunk_embedding import ChunkEmbeddingModel
+from app.models.topic import TopicModel, TopicAliasModel, ResourceTopicModel, ResourceTopicEvidenceModel
+from app.models.difficulty import ResourceDifficultyProfileModel, ResourceFeatureEvidenceModel
+from app.models.processing_job import ProcessingJobModel

@@ -17,3 +17,7 @@ api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
 # Phase 1 Routes
 api_router.include_router(discovery.router, prefix="/search-sessions", tags=["discovery"])
 api_router.include_router(ingestion.router, prefix="/search-sessions", tags=["ingestion"])
+
+# Phase 2 Routes
+from app.api.routes import retrieval
+api_router.include_router(retrieval.router, prefix="/retrieval", tags=["retrieval"])
